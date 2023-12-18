@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::io::{Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpStream};
 use std::time::Duration;
@@ -11,6 +12,7 @@ pub struct GpibController{
     ///
     /// This is tracked locally to avoid selecting a new address everytime a command is sent if you
     /// are only using one device. 255 means the address has not yet been set although this should never appear.
+    // this should only be updated with the `set_address` function
     current_gpib_addr: u8,
     ///list of devices on this bus
     devices: Vec<GpibDevice>
@@ -21,6 +23,11 @@ impl GpibController{
         self.tcp_stream.write(message.as_ref()).map_err(|e| {BatTestError::TcpIoError(e)})
     }
 
+    pub fn gpib_send_to_addr(&mut self, message: &str, gpib_addr: u8) -> Result<usize, BatTestError>{
+        self.set_address(gpib_addr)?;
+        self.send_raw_data(message)
+    }
+
     pub fn read_data(&mut self) -> Result<String, BatTestError>{
         let mut buffer_vec: Vec<u8> = Vec::with_capacity(32);
         self.tcp_stream.read_to_end(&mut buffer_vec).map_err(|e| {BatTestError::TcpIoError(e)})?;
@@ -28,6 +35,7 @@ impl GpibController{
     }
 
     pub fn try_new_from(ip_addr: IpAddr) -> Result<GpibController, BatTestError>{
+        println!("temp debug statement");
         let sock_addr: SocketAddr = SocketAddr::from((ip_addr, 1234u16));
         let mut temp_controller = GpibController{
             tcp_stream: TcpStream::connect_timeout(&sock_addr, Duration::from_millis(500)).map_err(|e| {BatTestError::TcpIoError(e)})?,
@@ -42,7 +50,34 @@ impl GpibController{
         Ok(temp_controller)
     }
 
+    pub fn set_address(&mut self, address: u8) -> Result<(), BatTestError>{
+        if self.current_gpib_addr == address{
+            return Ok(());
+        }
+        let mut temp_message: String = String::from("++addr ");
+        temp_message.push_str(&address.to_string());
+        self.send_raw_data(&temp_message)?;
+        self.current_gpib_addr = address;
+
+        Ok(())
+    }
+
 }
+
+#[cfg(test)]
+mod gpib_controller_tests {
+    use super::*;
+
+    #[test]
+    fn test_gpib_controller() {
+        println!("debug1");
+        let mut controller: GpibController = GpibController::try_new_from(IpAddr::from([192,168,1,82])).unwrap();
+        println!("Created controller");
+        controller.gpib_send_to_addr("*IDN?", 16).unwrap();
+        println!("{}", controller.read_data().unwrap())
+    }
+}
+
 
 // Commands for the controller: (not GPIB protocol)
 
