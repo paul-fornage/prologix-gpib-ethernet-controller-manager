@@ -1,9 +1,10 @@
-use std::fmt::Debug;
 use std::io::{Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpStream};
 use std::time::Duration;
 use crate::errors::BatTestError;
-use crate::gpib_device::GpibDevice;
+use crate::errors::BatTestError::BufferTooSmall;
+
+const BUFFER_SIZE: usize = 4096;
 
 pub struct GpibController{
     /// TcpStream where the controller is
@@ -14,8 +15,9 @@ pub struct GpibController{
     /// are only using one device. 255 means the address has not yet been set although this should never appear.
     // this should only be updated with the `set_address` function
     current_gpib_addr: u8,
-    ///list of devices on this bus
-    devices: Vec<GpibDevice>
+
+    /// buffer used to avoid reallocations.
+    buffer: [u8; BUFFER_SIZE]
 }
 
 impl GpibController{
@@ -28,25 +30,33 @@ impl GpibController{
         self.send_raw_data(message)
     }
 
-    pub fn read_data(&mut self) -> Result<String, BatTestError>{
-        let mut buffer_vec: Vec<u8> = Vec::with_capacity(32);
-        self.tcp_stream.read_to_end(&mut buffer_vec).map_err(|e| {BatTestError::TcpIoError(e)})?;
-        Ok(String::from_utf8(buffer_vec)?)
+    pub fn read_data(&mut self) -> Result<&str, BatTestError>{
+        let bytes_received = self.tcp_stream.read(&mut self.buffer).map_err(|e| {BatTestError::TcpIoError(e)})?;
+        if bytes_received > BUFFER_SIZE{
+            Err(BufferTooSmall) // Could also just read again and append results but I dont think any responses should be that big.
+        } else {
+            Ok(std::str::from_utf8(&self.buffer[0..bytes_received])?)
+        }
     }
 
     pub fn try_new_from(ip_addr: IpAddr) -> Result<GpibController, BatTestError>{
-        println!("temp debug statement");
         let sock_addr: SocketAddr = SocketAddr::from((ip_addr, 1234u16));
+        let temp_tcp_stream = TcpStream::connect_timeout(&sock_addr, Duration::from_millis(1500))
+            .map_err(|e| {BatTestError::TcpIoError(e)})?;
+        temp_tcp_stream.set_write_timeout(Some(Duration::from_millis(1500)))?;
+        temp_tcp_stream.set_read_timeout(Some(Duration::from_millis(1500)))?;
         let mut temp_controller = GpibController{
-            tcp_stream: TcpStream::connect_timeout(&sock_addr, Duration::from_millis(500)).map_err(|e| {BatTestError::TcpIoError(e)})?,
+            tcp_stream: temp_tcp_stream,
             current_gpib_addr: 255,
-            devices: vec![],
+            buffer: [0u8; BUFFER_SIZE]
         };
-        temp_controller.send_raw_data("++addr\n")?;
-        let addr: u8 = temp_controller.read_data()?.parse()?;
-        temp_controller.current_gpib_addr = addr;
-        temp_controller.send_raw_data("++auto 1;++mode 1\n")?;
 
+        temp_controller.send_raw_data("++addr\n")?;
+
+        let addr: u8 = temp_controller.read_data()?.trim().parse()?;
+        temp_controller.current_gpib_addr = addr;
+        temp_controller.send_raw_data("++auto 1\n")?;
+        temp_controller.send_raw_data("++mode 1\n")?;
         Ok(temp_controller)
     }
 
@@ -70,10 +80,8 @@ mod gpib_controller_tests {
 
     #[test]
     fn test_gpib_controller() {
-        println!("debug1");
         let mut controller: GpibController = GpibController::try_new_from(IpAddr::from([192,168,1,82])).unwrap();
-        println!("Created controller");
-        controller.gpib_send_to_addr("*IDN?", 16).unwrap();
+        controller.gpib_send_to_addr("*IDN?\n", 16).unwrap();
         println!("{}", controller.read_data().unwrap())
     }
 }

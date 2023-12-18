@@ -1,7 +1,5 @@
-use std::any::Any;
-use std::error::Error;
 use std::num::ParseIntError;
-use std::string::FromUtf8Error;
+use std::str::Utf8Error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -11,7 +9,7 @@ pub enum BatTestError {
     #[error("error parsing integer from a string: {0}")]
     ParseIntError(#[from] ParseIntError),
     #[error("error parsing string from TCPStream: {0}")]
-    ParseStringError(#[from] FromUtf8Error),
-    #[error("Error parsing url")]
-    UrlParseError
+    ParseStringError(#[from] Utf8Error),
+    #[error("Buffer overflow. Increase the size of the buffer or reconsider what you're doing")]
+    BufferTooSmall,
 }
