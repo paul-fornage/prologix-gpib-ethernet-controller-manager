@@ -1,7 +1,13 @@
 [package]
 name = "prologix-gpib-ethernet-controller-manager"
 version = "0.1.0"
+authors = ["Paul Fornage <paul@fornage.net>"]
 edition = "2021"
+description = "API for the PROLOGIX GPIB ethernet controller"
+readme = "README.md"
+repository = "https://github.com/paulwrath1223/prologix-gpib-ethernet-controller-manager"
+categories = ["api-bindings"]
+keywords = ["api", "gpib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
