@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpStream};
 use std::time::Duration;
-use crate::errors::BatTestError;
+use crate::errors::GpibControllerError;
 
 const BUFFER_SIZE: usize = 4096;
 
@@ -20,28 +20,28 @@ pub struct GpibController{
 }
 
 impl GpibController{
-    pub fn send_raw_data(&mut self, message: &str) -> Result<usize, BatTestError>{
-        self.tcp_stream.write(message.as_ref()).map_err(|e| {BatTestError::TcpIoError(e)})
+    pub fn send_raw_data(&mut self, message: &str) -> Result<usize, GpibControllerError>{
+        self.tcp_stream.write(message.as_ref()).map_err(|e| { GpibControllerError::TcpIoError(e)})
     }
 
-    pub fn gpib_send_to_addr(&mut self, message: &str, gpib_addr: u8) -> Result<usize, BatTestError>{
+    pub fn gpib_send_to_addr(&mut self, message: &str, gpib_addr: u8) -> Result<usize, GpibControllerError>{
         self.set_address(gpib_addr)?;
         self.send_raw_data(message)
     }
 
-    pub fn read_data(&mut self) -> Result<&str, BatTestError>{
-        let bytes_received = self.tcp_stream.read(&mut self.buffer).map_err(|e| {BatTestError::TcpIoError(e)})?;
+    pub fn read_data(&mut self) -> Result<&str, GpibControllerError>{
+        let bytes_received = self.tcp_stream.read(&mut self.buffer).map_err(|e| { GpibControllerError::TcpIoError(e)})?;
         if bytes_received > BUFFER_SIZE{
-            Err(BatTestError::BufferTooSmall) // Could also just read again and append results but I dont think any responses should be that big.
+            Err(GpibControllerError::BufferTooSmall) // Could also just read again and append results but I dont think any responses should be that big.
         } else {
             Ok(std::str::from_utf8(&self.buffer[0..bytes_received])?)
         }
     }
 
-    pub fn try_new_from(ip_addr: IpAddr) -> Result<GpibController, BatTestError>{
+    pub fn try_new_from(ip_addr: IpAddr) -> Result<GpibController, GpibControllerError>{
         let sock_addr: SocketAddr = SocketAddr::from((ip_addr, 1234u16));
         let temp_tcp_stream = TcpStream::connect_timeout(&sock_addr, Duration::from_millis(1500))
-            .map_err(|e| {BatTestError::TcpIoError(e)})?;
+            .map_err(|e| { GpibControllerError::TcpIoError(e)})?;
         temp_tcp_stream.set_write_timeout(Some(Duration::from_millis(1500)))?;
         temp_tcp_stream.set_read_timeout(Some(Duration::from_millis(1500)))?;
         let mut temp_controller = GpibController{
@@ -59,7 +59,7 @@ impl GpibController{
         Ok(temp_controller)
     }
 
-    pub fn set_address(&mut self, address: u8) -> Result<(), BatTestError>{
+    pub fn set_address(&mut self, address: u8) -> Result<(), GpibControllerError>{
         if self.current_gpib_addr == address{
             return Ok(());
         }

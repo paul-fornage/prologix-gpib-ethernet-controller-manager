@@ -3,7 +3,7 @@ use std::str::Utf8Error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum BatTestError {
+pub enum GpibControllerError {
     #[error("Error trying to send or receive data: {0}")]
     TcpIoError(#[from] std::io::Error),
     #[error("error parsing integer from a string: {0}")]
