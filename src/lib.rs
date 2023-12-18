@@ -1,6 +1,4 @@
 mod gpib_controller;
-mod gpib_device;
-mod hp606n_x;
 mod errors;
 
 pub fn add(left: usize, right: usize) -> usize {
