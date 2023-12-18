@@ -2,7 +2,6 @@ use std::io::{Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpStream};
 use std::time::Duration;
 use crate::errors::BatTestError;
-use crate::errors::BatTestError::BufferTooSmall;
 
 const BUFFER_SIZE: usize = 4096;
 
@@ -33,7 +32,7 @@ impl GpibController{
     pub fn read_data(&mut self) -> Result<&str, BatTestError>{
         let bytes_received = self.tcp_stream.read(&mut self.buffer).map_err(|e| {BatTestError::TcpIoError(e)})?;
         if bytes_received > BUFFER_SIZE{
-            Err(BufferTooSmall) // Could also just read again and append results but I dont think any responses should be that big.
+            Err(BatTestError::BufferTooSmall) // Could also just read again and append results but I dont think any responses should be that big.
         } else {
             Ok(std::str::from_utf8(&self.buffer[0..bytes_received])?)
         }
