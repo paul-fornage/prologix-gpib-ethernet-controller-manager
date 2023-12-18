@@ -8,8 +8,6 @@ use thiserror::Error;
 pub enum BatTestError {
     #[error("Error trying to send or receive data: {0}")]
     TcpIoError(#[from] std::io::Error),
-    #[error("reqwest error: {0}")]
-    ReqwestError(#[from] reqwest::Error),
     #[error("error parsing integer from a string: {0}")]
     ParseIntError(#[from] ParseIntError),
     #[error("error parsing string from TCPStream: {0}")]
