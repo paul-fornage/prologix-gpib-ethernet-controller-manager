@@ -1,2 +1,2 @@
-mod gpib_controller;
-mod errors;
+pub mod gpib_controller;
+pub mod errors;
