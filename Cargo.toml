@@ -8,6 +8,7 @@ readme = "README.md"
 repository = "https://github.com/paulwrath1223/prologix-gpib-ethernet-controller-manager"
 categories = ["api-bindings"]
 keywords = ["api", "gpib"]
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
