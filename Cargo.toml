@@ -1,6 +1,6 @@
 [package]
 name = "prologix-gpib-ethernet-controller-manager"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Paul Fornage <paul@fornage.net>"]
 edition = "2021"
 description = "API for the PROLOGIX GPIB ethernet controller"
