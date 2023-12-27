@@ -71,6 +71,25 @@ impl GpibController{
         Ok(())
     }
 
+    pub fn gpib_send_and_listen_wrapper(&mut self, message: &str, gpib_address: u8, ignore_response: bool) -> Result<Option<String>, GpibControllerError>{
+        self.gpib_send_to_addr(message, gpib_address)?;
+
+        if ignore_response {
+            return Ok(None)
+        }
+        match self.read_data() {
+            Ok(s) => {
+                Ok(Some(s.to_string()))
+            }
+            Err(GpibControllerError::TcpIoError(_)) => {
+                Ok(None)
+            }
+            Err(e) => {
+                Err(e)
+            }
+        }
+    }
+
 }
 
 #[cfg(test)]
